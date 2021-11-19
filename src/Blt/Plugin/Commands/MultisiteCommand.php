@@ -45,7 +45,7 @@ class MultisiteCommand extends BltTasks {
     $url = parse_url($domain);
     // @todo Validate uri, ensure includes scheme.
     $newDBSettings = $this->setLocalDbConfig($site_name);
-    if ($this->getInspector()->isDrupalVmConfigPresent()) {
+    if ($this->isDrupalVmConfigPresent()) {
       $this->configureDrupalVm($url, $newDBSettings);
     }
     $default_site_dir = $this->getConfigValue('docroot') . '/sites/default';
@@ -69,6 +69,17 @@ class MultisiteCommand extends BltTasks {
     }
     $this->say("  * @$remote_alias");
     $this->say("Config directory created for new site at <comment>config/$site_name</comment>");
+  }
+
+  /**
+   * Determines if Drupal VM configuration exists in the project.
+   *
+   * @return bool
+   *   TRUE if Drupal VM configuration exists.
+   */
+  public function isDrupalVmConfigPresent() {
+    return file_exists($this->getConfigValue('repo.root') . '/Vagrantfile')
+      && file_exists($this->getConfigValue('vm.config'));
   }
 
   /**
@@ -167,11 +178,12 @@ class MultisiteCommand extends BltTasks {
       YamlMunge::writeFile($default_site_dir . "/blt.yml",
         $default_site_yml);
       $project_yml = YamlMunge::parseFile($this->getConfigValue('blt.config-files.project'));
-      unset($project_yml['project']['local']['hostname']);
-      unset($project_yml['project']['local']['protocol']);
-      unset($project_yml['project']['machine_name']);
-      unset($project_yml['drush']['aliases']['local']);
-      unset($project_yml['drush']['aliases']['remote']);
+      unset($project_yml['project']['local']['hostname'],
+        $project_yml['project']['local']['protocol'],
+        $project_yml['project']['machine_name'],
+        $project_yml['drush']['aliases']['local'],
+        $project_yml['drush']['aliases']['remote']
+      );
       YamlMunge::writeFile($this->getConfigValue('blt.config-files.project'),
         $project_yml);
       chmod($default_site_dir, $initial_perms);
@@ -186,7 +198,7 @@ class MultisiteCommand extends BltTasks {
    *   New site dir.
    * @param string $site_name
    *   Site name.
-   * @param string $url
+   * @param array $url
    *   Site url.
    * @param string $local_alias
    *   Local alias.
@@ -324,10 +336,9 @@ class MultisiteCommand extends BltTasks {
     if (!empty($options[$option])) {
       return $options[$option];
     }
-    else {
-      $default = $site_name . '.' . $dest;
-      return $this->askDefault("Default $dest drush alias", $default);
-    }
+
+    $default = $site_name . '.' . $dest;
+    return $this->askDefault("Default $dest drush alias", $default);
   }
 
   /**
@@ -348,7 +359,7 @@ class MultisiteCommand extends BltTasks {
       $aliases['local']['uri'] = $site_url;
     }
     $defaultDrupalVmDrushAliasesFile = $this->getConfigValue('blt.root') . '/scripts/drupal-vm/drupal-vm.site.yml';
-    if ($this->getInspector()->isDrupalVmConfigPresent() && file_exists($defaultDrupalVmDrushAliasesFile)) {
+    if ($this->isDrupalVmConfigPresent() && file_exists($defaultDrupalVmDrushAliasesFile)) {
       $aliases = Expander::parse(file_get_contents($defaultDrupalVmDrushAliasesFile), $this->getConfig()->export());
     }
 

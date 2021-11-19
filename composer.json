@@ -16,5 +16,8 @@
         "psr-4": {
             "Acquia\\BltMultisite\\": "./src/"
         }
+    },
+    "require-dev": {
+        "acquia/blt": "^13.2"
     }
 }
